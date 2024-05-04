@@ -26,4 +26,4 @@ fm.setRoute("/", function(req)
 ]])
 end)
 
-fm.run({ port = tonumber(os.getenv("PORT") or 8080) })
+fm.run({ addr = os.getenv("ADDR"), port = tonumber(os.getenv("PORT") or 8080) })
