@@ -1,0 +1,53 @@
+@define REDBEAN_VERSION 2.2
+@define FULLMOON_COMMIT 84a2d22
+
+@lib
+    function silent() { "$@" >/dev/null; }
+    function download() {
+        if silent command -v curl; then
+            curl -fSL "$@"
+        elif silent command -v wget; then
+            wget "$@"
+        else
+            echo >&2 "can't find curl or wget"
+            exit 1
+        fi
+    }
+    function has_command() {
+        silent command -v "$1" || {
+            echo >&2 "can't find $1"
+            exit 1
+        }
+    }
+
+@goal clean
+    rm -f fvndb.com
+
+@goal luadeps
+    [[ -f ./luarocks ]] || { echo >&2 "make sure you have executed 'luarocks init'"; exit 1; }
+    ./luarocks install fvndb-dev-1.rockspec --deps-only
+
+@goal fullmoon
+@use_lib
+    download -o src/fullmoon.lua https://github.com/pkulchenko/fullmoon/raw/${FULLMOON_COMMIT}/fullmoon.lua
+
+@goal redbean
+@use_lib
+@reached_if [[ -f redbean.com ]]
+    download -o redbean.com https://redbean.dev/redbean-${REDBEAN_VERSION}.com
+    chmod +x redbean.com
+
+@goal build
+@use_lib
+@depends_on redbean
+@reached_if [[ -f fvndb.com && ! "$USER" == "komo" ]]
+    has_command zip
+    zip redbean.com .init.lua .lua/* src/* $(find lua_modules) --out fvndb.com
+    chmod +x fvndb.com
+
+@goal serve
+@depends_on build
+    ./fvndb.com
+
+@goal default
+@depends_on serve
